@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
 import { Rubik } from "next/font/google";
-import { Provider } from "@/app/components/ui/provider";
+import { Provider as ColorModeProvider } from "@/app/components/ui/provider";
 import { PlayerStoreProvider } from "./components/PlayerStoreProvider";
 import Script from "next/script";
+import { Stack } from "@chakra-ui/react/stack";
+import Player from "@/app/components/player/Player";
+import MenuBar from "@/app/components/menu-bar/MenuBar";
+import MenuProvider from "@/app/components/menu-bar/MenuProvider";
+import { Toaster } from "@/app/components/ui/toaster";
+import { SessionProvider } from "next-auth/react";
 const rubik = Rubik({
   subsets: ["latin"],
   variable: "--font-rubik",
@@ -21,11 +27,34 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${rubik.className}`}>
-        <PlayerStoreProvider>
-          {" "}
-          <Script src="https://open.spotify.com/embed/iframe-api/v1" async />
-          <Provider>{children}</Provider>
-        </PlayerStoreProvider>
+        <SessionProvider>
+          <PlayerStoreProvider>
+            {" "}
+            <Script src="https://open.spotify.com/embed/iframe-api/v1" async />
+            <ColorModeProvider>
+              <Stack
+                width="100%"
+                height="100vh"
+                alignItems={"center"}
+                justifyContent="center"
+              >
+                <Toaster />
+                {children}{" "}
+                <Stack
+                  position="absolute"
+                  bottom={7}
+                  right={10}
+                  alignItems={"end"}
+                >
+                  <Player />
+                  <MenuProvider>
+                    <MenuBar />
+                  </MenuProvider>
+                </Stack>
+              </Stack>
+            </ColorModeProvider>
+          </PlayerStoreProvider>
+        </SessionProvider>
       </body>
     </html>
   );
