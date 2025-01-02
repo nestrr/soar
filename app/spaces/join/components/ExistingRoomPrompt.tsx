@@ -1,10 +1,9 @@
 "use client";
-import { IconButton } from "@chakra-ui/react/button";
 import { Container, Input, Text } from "@chakra-ui/react";
-import { LuSendHorizontal } from "react-icons/lu";
 import { Button } from "@/app/components/ui/button";
 import { Tooltip } from "@/app/components/ui/tooltip";
 import { useState } from "react";
+import FinalizeRoomButton from "@/app/spaces/join/components/FinalizeRoomButton";
 export default function ExistingRoom({
   toggleScreens,
 }: {
@@ -48,16 +47,7 @@ export default function ExistingRoom({
             offset: { mainAxis: 2, crossAxis: 0 },
           }}
         >
-          {/**This icon button should also redirect to next page. */}
-          <IconButton
-            size="sm"
-            onClick={() => {
-              console.log("going to the room");
-            }}
-            aria-label="Go to this room"
-          >
-            <LuSendHorizontal />
-          </IconButton>
+          <FinalizeRoomButton roomId={roomId} />
         </Tooltip>
       </Container>
 

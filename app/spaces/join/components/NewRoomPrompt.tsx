@@ -1,40 +1,21 @@
 "use client";
 import { IconButton } from "@chakra-ui/react/button";
-import {
-  Container,
-  HStack,
-  LinkBox,
-  LinkOverlay,
-  Text,
-} from "@chakra-ui/react";
-import { LuRefreshCcw, LuSendHorizontal } from "react-icons/lu";
+import { Container, HStack, Text } from "@chakra-ui/react";
+import { LuRefreshCcw } from "react-icons/lu";
 import { Button } from "@/app/components/ui/button";
 import { generateSlug } from "random-word-slugs";
-import { useEffect, useRef, useState } from "react";
-import { useParticipantStore } from "@/app/spaces/components/ParticipantStoreProvider";
-import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useEffect, useState } from "react";
+import FinalizeRoomButton from "@/app/spaces/join/components/FinalizeRoomButton";
 export default function NewRoom({
   toggleScreens,
 }: {
   toggleScreens: () => void;
 }) {
-  const { socket } = useParticipantStore((state) => state);
   const [roomId, setRoomId] = useState("");
-  const sent = useRef(false);
-  function finalizeRoom() {
-    // Socket is definitely ready, because button is disabled otherwise.
-    //
-    if (!sent.current) {
-      socket!.send(JSON.stringify({ type: "createRoom", roomId }));
-      sent.current = true;
-      redirect(`/spaces/room${roomId}`);
-    }
-  }
+
   useEffect(() => {
     setRoomId(generateSlug(3));
-    if (socket && socket.readyState !== 1) socket.reconnect();
-  }, [socket]);
+  }, []);
   return (
     <>
       <Text fontSize="xl" fontWeight="bold" lineHeight={"moderate"}>
@@ -64,13 +45,7 @@ export default function NewRoom({
           >
             <LuRefreshCcw />
           </IconButton>
-          <Button
-            colorPalette="accent"
-            color="fg.emphasized"
-            onClick={finalizeRoom}
-          >
-            Let&apos;s go!
-          </Button>
+          <FinalizeRoomButton roomId={roomId} />
         </HStack>
       </Container>
 
