@@ -1,21 +1,47 @@
 import { createStore } from "zustand/vanilla";
-import { Device, types as MediasoupClientTypes } from "mediasoup-client";
+import { types as MediasoupClientTypes } from "mediasoup-client";
 export type Callback = (...args: unknown[]) => void;
 export type Errback = (error: Error) => void;
-import type { WebSocket } from "partysocket";
-type RoomData = {
-  id: string;
-  muted: boolean;
-  cameraOn: boolean;
-  producerTransport: MediasoupClientTypes.Transport;
-  consumerTransport: MediasoupClientTypes.Transport;
-  producer: MediasoupClientTypes.Producer;
-  consumer: MediasoupClientTypes.Consumer;
-  transportCallbacks: Record<string, Callback>;
-  transportErrbacks: Record<string, Errback>;
-  permissionsGranted: boolean;
-  // TODO: add mediasoup-related properties
-};
+import { MessageHandlers } from "@/app/spaces/components/WebSocketManager";
+type RoomData =
+  | {
+      id: string;
+      muted: boolean;
+      cameraOn: boolean;
+      producerTransport: MediasoupClientTypes.Transport;
+      consumerTransport: MediasoupClientTypes.Transport;
+      producers: {
+        video?: MediasoupClientTypes.Producer;
+        audio?: MediasoupClientTypes.Producer;
+      };
+      consumers: {
+        video: MediasoupClientTypes.Consumer;
+        audio: MediasoupClientTypes.Consumer;
+      };
+      transportCallbacks: Record<string, Record<string, Callback>>;
+      transportErrbacks: Record<string, Record<string, Errback>>;
+      permissionsGranted: boolean;
+      stream: MediaStream;
+    }
+  | {
+      id: null;
+      muted: null;
+      cameraOn: null;
+      producerTransport: null;
+      consumerTransport: null;
+      producers: {
+        video?: null;
+        audio?: null;
+      };
+      consumers: {
+        video?: null;
+        audio?: null;
+      };
+      transportCallbacks: Record<string, never>;
+      transportErrbacks: Record<string, never>;
+      permissionsGranted: null;
+      stream: null;
+    };
 type ParticipantAuthStatus = "unauthenticated" | "authenticated";
 type UserInfo = {
   userId: string;
@@ -26,26 +52,47 @@ type UserInfo = {
 export type ParticipantState = {
   user: UserInfo;
   device: MediasoupClientTypes.Device | null;
-  activeRoom: RoomData | null;
-  socket: WebSocket | null;
+  activeRoom: RoomData;
 };
 
 export type ParticipantActions = {
-  setUserId: (newId: string) => void;
-  setDisplayName: (newName: string) => void;
-  setAuthStatus: (newStatus: ParticipantAuthStatus) => void;
-  setUserInfo: (newInfo: UserInfo) => void;
-  setWebsocket: (ws: WebSocket) => void;
-  connect: () => void;
+  updateUserInfo: (newInfo: Partial<UserInfo>) => void;
+  updateRoomInfo: (newInfo: Partial<RoomData>) => void;
   createDevice: (device: MediasoupClientTypes.Device) => void;
   joinRoom: (roomInfo: RoomData) => void;
   leaveRoom: (roomId: string) => void;
-  addTransportCallback: (transportId: string, callback: Callback) => void;
-  addTransportErrback: (transportId: string, errback: Errback) => void;
+  addTransportCallback: (
+    event: string,
+    transportId: string,
+    callback: Callback
+  ) => void;
+  addTransportErrback: (
+    event: string,
+    transportId: string,
+    errback: Errback
+  ) => void;
 };
 
 export type ParticipantStore = ParticipantState & ParticipantActions;
-
+const defaultActiveRoom: RoomData = {
+  id: null,
+  muted: null,
+  cameraOn: null,
+  producerTransport: null,
+  consumerTransport: null,
+  producers: {
+    video: null,
+    audio: null,
+  },
+  consumers: {
+    video: null,
+    audio: null,
+  },
+  transportCallbacks: {},
+  transportErrbacks: {},
+  permissionsGranted: null,
+  stream: null,
+};
 export const defaultInitState: ParticipantState = {
   device: null,
   user: {
@@ -53,8 +100,7 @@ export const defaultInitState: ParticipantState = {
     displayName: "",
     authStatus: "unauthenticated",
   },
-  socket: null,
-  activeRoom: null,
+  activeRoom: defaultActiveRoom,
 };
 
 export const createParticipantStore = (
@@ -62,51 +108,56 @@ export const createParticipantStore = (
 ) => {
   return createStore<ParticipantStore>()((set) => ({
     ...initState,
-    setUserInfo: (newInfo: UserInfo) => set((_state) => ({ user: newInfo })),
-    setUserId: (newId: string) =>
-      set((state) => ({ user: { ...state.user, userId: newId } })),
-    setAuthStatus: (newStatus: ParticipantAuthStatus) =>
-      set((state) => ({ user: { ...state.user, authStatus: newStatus } })),
-    setDisplayName: (newDisplayName: string) =>
-      set((state) => ({
-        user: { ...state.user, displayName: newDisplayName },
-      })),
+    updateUserInfo: (newInfo: Partial<UserInfo>) =>
+      set((state) => ({ ...state, user: { ...state.user, ...newInfo } })),
+    updateRoomInfo: (newInfo: Partial<RoomData>) =>
+      set((state) => {
+        const activeRoom = { ...state.activeRoom, ...newInfo } as RoomData;
+        return { ...state, activeRoom };
+      }),
     createDevice: (device: MediasoupClientTypes.Device) =>
       set((state) => ({ ...state, device })),
     joinRoom: (roomInfo: RoomData) =>
       set((state) => ({ ...state, activeRoom: roomInfo })),
-    setWebsocket: (ws: WebSocket) => set((state) => ({ ...state, socket: ws })),
     leaveRoom: (_roomId: string) =>
-      set((_state) => {
-        return { activeRoom: null };
+      set((state) => {
+        return { ...state, activeRoom: defaultActiveRoom };
       }),
-    addTransportCallback: (transportId: string, callback: Callback) =>
+    addTransportCallback: (
+      event: string,
+      transportId: string,
+      callback: Callback
+    ) =>
       set((state) => {
         const { activeRoom } = state;
-        if (!activeRoom) return state;
-        activeRoom.transportCallbacks[transportId] = callback;
+        if (!activeRoom.id) return state;
+        activeRoom.transportCallbacks![transportId] = {
+          ...activeRoom.transportCallbacks![transportId],
+          [event]: callback,
+        };
         return {
           ...state,
           activeRoom,
         };
       }),
-    addTransportErrback: (transportId: string, errback: Errback) =>
+    addTransportErrback: (
+      event: string,
+      transportId: string,
+      errback: Errback
+    ) =>
       set((state) => {
         const { activeRoom } = state;
-        if (!activeRoom) return state;
-        activeRoom.transportErrbacks[transportId] = errback;
+        if (!activeRoom.id) return state;
+        activeRoom.transportErrbacks![transportId] = {
+          ...activeRoom.transportErrbacks![transportId],
+          [event]: errback,
+        };
         return {
           ...state,
           activeRoom,
         };
       }),
-    connect: () => {
-      set((state) => {
-        const { socket } = state;
-        if (!socket) return state;
-        socket.reconnect();
-        return { ...state, socket };
-      });
-    },
+    setMessageHandlers: (handlers: MessageHandlers) =>
+      set((state) => ({ ...state, messageHandlers: handlers })),
   }));
 };
