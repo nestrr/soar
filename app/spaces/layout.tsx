@@ -1,7 +1,8 @@
 import { ParticipantStoreProvider } from "@/app/spaces/components/ParticipantStoreProvider";
-import WebSocketProvider from "@/app/spaces/components/WebSocketProvider";
+import WebSocketManager from "@/app/spaces/components/WebSocketManager";
 import DeviceManager from "@/app/spaces/components/DeviceManager";
 import { auth } from "@/auth";
+import { SocketStoreProvider } from "@/app/spaces/components/SocketStoreProvider";
 
 export default async function SpacesLayout({
   children,
@@ -10,11 +11,13 @@ export default async function SpacesLayout({
 }>) {
   const session = await auth();
   return (
-    <ParticipantStoreProvider>
-      <DeviceManager />
-      <WebSocketProvider accessToken={session?.accessToken}></WebSocketProvider>
+    <SocketStoreProvider>
+      <ParticipantStoreProvider>
+        <DeviceManager />
+        <WebSocketManager accessToken={session?.accessToken} />
 
-      {children}
-    </ParticipantStoreProvider>
+        {children}
+      </ParticipantStoreProvider>
+    </SocketStoreProvider>
   );
 }
