@@ -11,7 +11,7 @@ export default function DialogScreens() {
     setNeedsNewRoom((n) => !n);
   };
   function renderStages() {
-    if (!activeRoom) {
+    if (!activeRoom.id) {
       return needsNewRoom ? (
         <NewRoom toggleScreens={toggleScreens} />
       ) : (
