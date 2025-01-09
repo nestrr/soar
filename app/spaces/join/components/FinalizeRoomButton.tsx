@@ -1,20 +1,13 @@
 import { Button } from "@/app/components/ui/button";
-import { useParticipantStore } from "@/app/spaces/components/ParticipantStoreProvider";
+import { useSocketStore } from "@/app/spaces/components/SocketStoreProvider";
 import { redirect } from "next/navigation";
-import { useEffect, useRef } from "react";
 
 export default function FinalizeRoomButton({ roomId }: { roomId: string }) {
-  const { socket } = useParticipantStore((state) => state);
-  const sent = useRef(false);
-  useEffect(() => {
-    if (socket && socket.readyState !== 1) socket.reconnect();
-  }, [socket]);
+  const { sendRequest, getRequest } = useSocketStore((state) => state);
   function finalizeRoom() {
-    // Socket is definitely ready, because button is disabled otherwise.
-    //
-    if (!sent.current) {
-      socket!.send(JSON.stringify({ type: "createRoom", roomId }));
-      sent.current = true;
+    if (!getRequest("createRoom", roomId)) {
+      // TODO: differentiate request type based on room join vs. room creation
+      sendRequest("createRoom", { roomId }, roomId);
       redirect(`/spaces/room/${roomId}`);
     }
   }
