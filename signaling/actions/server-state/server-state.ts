@@ -1,4 +1,4 @@
-import { FullRoomInfo, PeerKeyData } from "../../ServerTypes";
+import type { FullRoomInfo, PeerKeyData, UserInfo } from "../../ServerTypes";
 import type { types as MediasoupTypes } from "mediasoup";
 import autoBind from "auto-bind";
 import redis from "../../lib/redis";
@@ -10,9 +10,8 @@ import {
   routerRepository,
   transportRepository,
 } from "./repositories";
-import { Entity, EntityId } from "redis-om";
-import { publishCheckRequest } from "./cleanup/producer";
 import logs from "../../lib/logger";
+import { publishCheckRequest } from "./cleanup/producer";
 class ServerStateActions {
   userPeerKeys: Record<string, PeerKeyData> = {};
   routers: Record<string, MediasoupTypes.Router> = {};
@@ -67,10 +66,16 @@ class ServerStateActions {
     const peerKeys = await redis.sMembers(`memberPeerKeys:room:${roomId}`);
     const peers = [];
     for (const peerKey of peerKeys) {
-      const { userId, producerId } = await peerRepository.fetch(peerKey);
+      const { userId, producerId, displayName, verified } =
+        await peerRepository.fetch(peerKey);
       if (producerId) {
         // NOT returning consumer since that doesn't seem necessary
-        peers.push({ userId, producerId: producerId as string });
+        peers.push({
+          userId,
+          displayName,
+          verified,
+          producerId: producerId as string,
+        });
       }
     }
     return peers;
@@ -140,7 +145,7 @@ class ServerStateActions {
     await routerRepository.remove(routerId);
 
     // 2. Remove Mediasoup router itself from local memory.
-    const { [routerId]: router, ...others } = this.routers;
+    const { [routerId]: _router, ...others } = this.routers;
     this.routers = { ...others };
     logs.info("Removed router %s from state", routerId);
   }
@@ -180,7 +185,7 @@ class ServerStateActions {
         ? onlyIncludeRooms
         : Object.keys(this.userPeerKeys[userId] ?? {});
 
-    for (let roomId of roomsToInclude) {
+    for (const roomId of roomsToInclude) {
       if (!this.userPeerKeys[userId]?.[roomId]) {
         console.error("Peer key for roomnot found! Cannot get user presence.");
         continue;
@@ -207,14 +212,15 @@ class ServerStateActions {
 
   /**
    * Store the user in server storage
-   * @param userId The user ID of the user
+   * @param userInfo The user information, including user ID and display name
    * @param roomId The room ID of the room they want to join
    */
-  async storeUser(userId: string, roomId: string) {
+  async storeUser(userInfo: UserInfo, roomId: string) {
     // 1. Save peer (user-room connection) information in Redis hash.
+    const { userId } = userInfo;
     logs.debug("Saving user %s in room %s", userId, roomId);
-    const savedPeer: Entity = await peerRepository.save(`${userId}:${roomId}`, {
-      userId,
+    await peerRepository.save(`${userId}:${roomId}`, {
+      ...userInfo,
       roomId,
       producerTransportId: "",
       consumerTransportId: "",
@@ -230,6 +236,35 @@ class ServerStateActions {
       ...this.userPeerKeys[userId],
       ...{ [roomId]: `${userId}:${roomId}` },
     };
+  }
+
+  /**
+   * Updates user-related information in all peer records
+   * @param userId The user ID
+   * @param userInfo The new user details
+   */
+  async updateUser(userId: string, userInfo: Partial<UserInfo>) {
+    if (!userId) {
+      logs.warn(
+        "User ID empty, could not update user. User info: %O",
+        userInfo
+      );
+      return;
+    }
+    const peerKeys = await redis.sMembers(`peerKeys:user:${userId}`);
+    for (const peerKey of peerKeys) {
+      const currentPeerInfo = await peerRepository.fetch(peerKey);
+      if (!currentPeerInfo) {
+        logs.warn("Could not fetch peer info for peer key %s", peerKey);
+        return;
+      }
+      const { roomId } = currentPeerInfo;
+      logs.debug("Updating user %s in room %s", userId, roomId);
+      await peerRepository.save(`${userId}:${roomId}`, {
+        ...currentPeerInfo,
+        ...userInfo,
+      });
+    }
   }
 
   /**
@@ -276,7 +311,7 @@ class ServerStateActions {
     await publishCheckRequest(userId, "user");
     await publishCheckRequest(roomId, "room");
 
-    const { [roomId]: room, ...others } = this.userPeerKeys[userId];
+    const { [roomId]: _room, ...others } = this.userPeerKeys[userId];
     this.userPeerKeys[userId] = { ...others };
     logs.info(
       "Removed peer %s. In-memory userPeerKeys now %O",
@@ -299,7 +334,7 @@ class ServerStateActions {
    */
   async removeUser(userId: string) {
     const peerKeys = await redis.sMembers(`peerKeys:user:${userId}`);
-    for (let peerKey of peerKeys) {
+    for (const peerKey of peerKeys) {
       logs.warn(`REMOVING USER PEER FROM SERVER STATE ---> %O`, {
         peerKey,
         userId,
@@ -360,7 +395,7 @@ class ServerStateActions {
   async removeTransport(transportId: string) {
     if (!this.transports[transportId]) return;
 
-    const { [transportId]: transportToRemove, ...others } = this.transports;
+    const { [transportId]: _transportToRemove, ...others } = this.transports;
 
     // 1. Remove transport from Redis transport hash.
     await transportRepository.remove(transportId);
@@ -427,7 +462,7 @@ class ServerStateActions {
    */
   async removeProducer(producerId: string) {
     if (!this.producers[producerId]) return;
-    const { [producerId]: producerToRemove, ...others } = this.producers;
+    const { [producerId]: _producerToRemove, ...others } = this.producers;
 
     // 1. Remove producer from Redis producer hash.
     await producerRepository.remove(producerId);
@@ -460,7 +495,7 @@ class ServerStateActions {
     transportId: string,
     config: Record<string, unknown>
   ) {
-    const savedConsumer: Entity = await consumerRepository.save(consumer.id, {
+    await consumerRepository.save(consumer.id, {
       peerKey: this.userPeerKeys[userId][roomId],
       roomId,
       transportId,
@@ -494,7 +529,7 @@ class ServerStateActions {
    */
   async removeConsumer(consumerId: string) {
     if (!this.consumers[consumerId]) return;
-    const { [consumerId]: consumerToRemove, ...others } = this.consumers;
+    const { [consumerId]: _consumerToRemove, ...others } = this.consumers;
     // 1. Remove consumer from Redis consumer hash.
     await consumerRepository.remove(consumerId);
 
