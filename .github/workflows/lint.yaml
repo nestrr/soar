@@ -14,12 +14,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22.x"
-      - run: npm ci
-      - run: |
-          echo "Linting frontend" \
-            && npm run lint
-      - run: |
-          echo "Linting signaling server" \
-            && cd signaling \
+      - name: Lint frontend
+        run: npm ci && npm run lint
+      - name: Lint signaling server
+        run: |
+          cd signaling \
             && npm ci \
             && npm run lint
