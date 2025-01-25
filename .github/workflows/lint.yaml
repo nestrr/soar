@@ -17,7 +17,9 @@ jobs:
       - run: npm ci
       - run: |
           echo "Linting frontend" \
-            && npm run lint \
-            && echo "Linting signaling server" \
+            && npm run lint
+      - run: |
+          echo "Linting signaling server" \
             && cd signaling \
+            && npm ci \
             && npm run lint
