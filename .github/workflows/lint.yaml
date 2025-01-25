@@ -15,4 +15,4 @@ jobs:
         with:
           node-version: "22.x"
       - run: npm ci
-      - run: ls
+      - run: npx next lint
