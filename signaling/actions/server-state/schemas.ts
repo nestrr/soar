@@ -5,16 +5,13 @@ interface RoomSchema extends Entity {
 }
 interface PeerSchema extends Entity {
   userId: string;
+  displayName: string;
+  verified: boolean;
   roomId: string;
   producerTransportId: string;
   consumerTransportId: string;
   producerId: string;
   consumerId: string;
-}
-interface UserSchema extends Entity {
-  accessToken?: string;
-  userId: string;
-  rooms: Record<string, PeerSchema>;
 }
 interface RouterSchema extends Entity {
   config: string;
@@ -43,6 +40,8 @@ export const peerSchema = new Schema<PeerSchema>(
   "peer",
   {
     userId: { type: "string" },
+    displayName: { type: "string" },
+    verified: { type: "boolean" },
     roomId: { type: "string" },
     producerTransportId: { type: "string" },
     consumerTransportId: { type: "string" },

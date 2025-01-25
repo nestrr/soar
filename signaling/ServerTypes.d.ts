@@ -1,4 +1,5 @@
 import type { types as MediasoupTypes } from "mediasoup";
+import { MediaKind } from "mediasoup/node/lib/rtpParametersTypes";
 
 interface PeerData {
   producerTransportId: string | null;
@@ -19,6 +20,8 @@ interface FullRoomInfo {
 interface UserData {
   accessToken?: string;
   userId: string;
+  verified: boolean;
+  displayName: string;
   // rooms: Record<
   //   string,
   //   PeerData
@@ -26,6 +29,17 @@ interface UserData {
   //   //   routerId: string;
   //   // }
   // >;
+}
+interface UserInfo {
+  userId: string;
+  verified: boolean;
+  displayName: string;
+}
+
+interface ProducerInfo {
+  displayName: string;
+  verified: boolean;
+  producers: Record<MediaKind, string>;
 }
 /**
  * @abstract
@@ -42,6 +56,7 @@ interface UserIdUpdate extends ServerUpdate {
   contents: {
     info: string;
     userId: string;
+    verified: boolean;
   };
 }
 

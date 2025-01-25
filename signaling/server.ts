@@ -6,8 +6,10 @@ import {
   FullRoomInfo,
   GetPeersCountUpdate,
   PeerData,
+  ProducerInfo,
   UserData,
   UserIdUpdate,
+  UserInfo,
 } from "./ServerTypes";
 import { WebSocketActions, WS_ERRORS } from "./actions/websocket";
 import { bufferToJSON, generateHash } from "./lib/util";
@@ -25,7 +27,7 @@ const state = ServerState.getInstance();
 
 async function createWorkers() {
   try {
-    const workers = await mediasoupHandler.createWorkers(
+    await mediasoupHandler.createWorkers(
       config.numWorkers,
       config.workerSettings
     );
@@ -45,33 +47,53 @@ async function createRoom(roomId: string) {
   await state.storeRoom(roomId, router.id);
   logs.info("Stored router %s", router.id);
 }
-async function joinRoom(roomId: string, userId: string) {
-  let message: string = "User is already in room";
-  let room = await state.getRoom(roomId);
-  logs.debug("Room: %O", room);
+async function joinNewRoom(roomId: string, userInfo: UserInfo) {
+  let room: FullRoomInfo | null = null;
+  const { userId } = userInfo;
+  try {
+    logs.info("User ID %s is creating room: %s", userId, roomId);
+    await createRoom(roomId);
+    room = await state.getRoom(roomId);
+  } catch (e) {
+    console.error(e);
+    return {
+      contents: { info: "Error with router creation" },
+      success: false,
+    };
+  }
+  if (!room)
+    return { contents: { info: "Error creating room" }, success: false };
+  await state.storeUser(userInfo, roomId);
+  return {
+    contents: {
+      info: "User has created room successfully.",
+      routerRtpCapabilities: room.router?.rtpCapabilities,
+      roomId,
+    },
+    success: true,
+  };
+}
+
+async function joinExistingRoom(roomId: string, userInfo: UserInfo) {
+  let message: string = "";
+  const room = await state.getRoom(roomId);
+  const { userId } = userInfo;
+  logs.debug("User ID %s joining existing room: %O", userId, room);
+  if (!room) {
+    return {
+      contents: { info: "Could not fetch room details" },
+      success: false,
+    };
+  }
   const isUserInRoom = await state.isUserInRoom(userId, roomId);
   if (isUserInRoom) {
     message = "User is already in room";
     logs.info("User is already in room %s", userId, roomId);
-  } else if (room) {
+  } else {
     message = "User has started to join room";
     logs.info("User will now join room %s", roomId);
-  } else {
-    try {
-      logs.info("Creating room: %s", roomId);
-      await createRoom(roomId);
-      room = await state.getRoom(roomId);
-    } catch (e) {
-      console.error(e);
-      return {
-        contents: { info: "Error with router creation" },
-        success: false,
-      };
-    }
   }
-  if (!room)
-    return { contents: { info: "Error creating room" }, success: false };
-  await state.storeUser(userId, roomId);
+  await state.storeUser(userInfo, roomId);
   return {
     contents: {
       info: message,
@@ -84,12 +106,6 @@ async function joinRoom(roomId: string, userId: string) {
 async function createWebRtcTransports(room: FullRoomInfo, userId: string) {
   const { webRtcTransport } = config;
   try {
-    logs.info(
-      "Creating WebRTC transports with %s %O %s",
-      room.router?.id,
-      webRtcTransport,
-      userId
-    );
     const producerTransport = await mediasoupHandler.createWebRtcTransport(
       room.router,
       webRtcTransport,
@@ -117,6 +133,7 @@ async function createWebRtcTransports(room: FullRoomInfo, userId: string) {
     return {
       contents: {
         info: "WebRTC transports created",
+        roomId: room.id,
         producerTransportOptions: {
           id: producerTransport.id,
           iceParameters: producerTransport.iceParameters,
@@ -145,15 +162,14 @@ async function createWebRtcTransports(room: FullRoomInfo, userId: string) {
 }
 async function connectTransport(
   dtlsParameters: MediasoupTypes.DtlsParameters,
-  transportId: string,
-  userId: string
+  transportId: string
 ) {
   try {
     await mediasoupHandler.connectTransport(
       state.getTransport(transportId),
-      dtlsParameters,
-      userId
+      dtlsParameters
     );
+
     return {
       contents: {
         info: "Transport connected",
@@ -196,6 +212,8 @@ async function produce(
         info: "Producer created",
         producerId: producer.id,
         producerTransportId,
+        ...producer.appData,
+        kind: producer.kind,
       },
       success: true,
     };
@@ -238,8 +256,7 @@ async function consume(
         kind: consumer.kind,
         rtpParameters: consumer.rtpParameters,
         type: consumer.type,
-        producerPaused: consumer.producerPaused,
-        producerId: consumer.producerId,
+        producer: state.getProducer(consumerConfig.producerId),
         consumerTransportId,
       },
       success: true,
@@ -354,19 +371,46 @@ async function resumeConsumer(consumerId: string, userId: string) {
     };
   }
 }
+async function updateUser(userId: string, userInfo: Partial<UserInfo>) {
+  try {
+    await state.updateUser(userId, userInfo);
+    return {
+      contents: {
+        info: "Peer updated successfully",
+      },
+      success: true,
+    };
+  } catch (e) {
+    console.error(e);
+    return {
+      contents: {
+        info: "Error updating peer.",
+      },
+      success: false,
+    };
+  }
+}
 async function getProducersForPeer(userId: string, roomId: string) {
   const peersInfo = await state.getProducingRoomPeers(roomId);
-  const producers = peersInfo.map(({ userId, producerId }) => {
-    const { appData } = state.getProducer(producerId!);
+  const producers = peersInfo.reduce((acc, peer) => {
+    const { userId: peerUserId, producerId, displayName, verified } = peer;
+    // skip current user
+    if (userId === peerUserId) return acc;
+    const { kind } = state.getProducer(producerId!);
     return {
-      userId,
-      producerId,
-      appData,
+      ...acc,
+      [userId]: {
+        ...acc[userId],
+        displayName,
+        verified,
+        producers: { ...acc[userId].producers, [kind]: producerId },
+      },
     };
-  });
+  }, {} as Record<string, ProducerInfo>);
   return {
     contents: {
       info: "Producers retrieved",
+      roomId,
       producers,
     },
     success: true,
@@ -435,9 +479,12 @@ export const app = SSLApp({
     /* Handlers */
     upgrade: async (res, req, context) => {
       const accessToken = req.getQuery("accessToken")!;
-      let userId = req.getQuery("userId");
       let upgradeAborted = false;
-      let verified = false;
+      let userInfo = {
+        userId: req.getQuery("userId"),
+        verified: false,
+        displayName: "",
+      };
       const secWebsocketKey = req.getHeader("sec-websocket-key");
       const secWebsocketProtocol = req.getHeader("sec-websocket-protocol");
       const secWebsocketExtensions = req.getHeader("sec-websocket-extensions");
@@ -450,10 +497,14 @@ export const app = SSLApp({
             headers: { Authorization: `Bearer ${accessToken}` },
           });
           const profile = await spotifyRes.json();
-          userId = profile.id;
-          verified = true;
-          if (userId) {
-            logs.info(`Access token verified, userId: ${userId}`);
+          if (profile.id) {
+            userInfo = {
+              ...userInfo,
+              userId: profile.id,
+              verified: true,
+              displayName: profile.display_name,
+            };
+            logs.info(`Access token verified, user info %O`, userInfo);
           } else {
             logs.debug(`Access token verification failed.`);
           }
@@ -461,21 +512,18 @@ export const app = SSLApp({
           logs.debug(`Access token verification failed: ${e}`);
         }
       }
-      if (!upgradeAborted && !userId) {
+      if (!upgradeAborted && !userInfo.userId) {
         const ipAddress = res.getRemoteAddressAsText();
-        userId = await generateHash(ipAddress);
+        userInfo = { ...userInfo, userId: await generateHash(ipAddress) };
         logs.info(
-          `No accessToken provided, or profile fetch failed. Generated new userId: %s`,
-          userId
+          `No accessToken provided, or profile fetch failed. Generated new userId. User info: %O`,
+          userInfo
         );
       }
       if (!upgradeAborted)
         res.cork(() =>
           res.upgrade(
-            {
-              userId,
-              verified,
-            },
+            userInfo,
             secWebsocketKey,
             secWebsocketProtocol,
             secWebsocketExtensions,
@@ -484,33 +532,70 @@ export const app = SSLApp({
         );
     },
     open: (ws: WebSocket<UserData>) => {
-      const { userId } = ws.getUserData();
-      ws.ping();
-      ws.getUserData = () => {
-        return { userId };
-      };
+      const { userId, verified } = ws.getUserData();
+      // ws.getUserData = () => {
+      //   return { userId, verified };
+      // };
       WebSocketActions.send(ws, {
         type: "userIdUpdate",
-        contents: { userId },
+        contents: { userId, verified },
         success: true,
       } as UserIdUpdate);
     },
     message: async (ws, message, _isBinary) => {
       /* Ok is false if backpressure was built up, wait for drain */
       const messageInfo = bufferToJSON(message as ArrayBuffer);
-      const { userId } = ws.getUserData();
+      const { userId, verified, displayName } = ws.getUserData();
 
       switch (messageInfo.type) {
         case "joinRoom":
+          if (!(await state.existsRoom(messageInfo.roomId))) {
+            WebSocketActions.sendError(
+              ws,
+              "joinRoomUpdate",
+              WS_ERRORS.ROOM_NON_EXISTENT
+            );
+            return;
+          }
+
           logs.info(
-            "Received request to join room. User ID: %s, room ID: %s",
+            "Received request to join existing room. User ID: %s, room ID: %s",
             messageInfo.roomId,
             userId
           );
-          ws.ping();
           WebSocketActions.send(ws, {
             type: "joinRoomUpdate",
-            ...(await joinRoom(messageInfo.roomId, userId)),
+            ...(await joinExistingRoom(messageInfo.roomId, {
+              userId,
+              verified,
+              displayName,
+            })),
+          });
+
+          break;
+        case "createRoom":
+          if (await state.existsRoom(messageInfo.roomId)) {
+            WebSocketActions.sendError(
+              ws,
+              "createRoomUpdate",
+              "Cannot create room. Room ID already taken."
+            );
+            return;
+          }
+
+          logs.info(
+            "Received request to create new room. User ID: %s, display name: %s, room ID: %s",
+            userId,
+            displayName,
+            messageInfo.roomId
+          );
+          WebSocketActions.send(ws, {
+            type: "createRoomUpdate",
+            ...(await joinNewRoom(messageInfo.roomId, {
+              userId,
+              verified,
+              displayName,
+            })),
           });
           break;
         case "createWebRtcTransports":
@@ -545,8 +630,7 @@ export const app = SSLApp({
             type: "connectTransportUpdate",
             ...(await connectTransport(
               messageInfo.dtlsParameters,
-              messageInfo.transportId,
-              userId
+              messageInfo.transportId
             )),
           });
           break;
@@ -555,11 +639,10 @@ export const app = SSLApp({
             WebSocketActions.sendError(
               ws,
               "produceUpdate",
-              WS_ERRORS.ROOM_NON_EXISTENT
+              `${WS_ERRORS.ROOM_NON_EXISTENT}: ${messageInfo.roomId}`
             );
             return;
           }
-
           WebSocketActions.send(ws, {
             type: "produceUpdate",
             ...(await produce(
@@ -689,18 +772,35 @@ export const app = SSLApp({
             ...(await resumeConsumer(messageInfo.consumerId, userId)),
           });
           break;
-        case "getProducersForPeer":
+        case "updateDisplayName":
+          ws.getUserData = () => {
+            return { userId, verified, displayName: messageInfo.displayName };
+          };
+          WebSocketActions.send(ws, {
+            type: "updateDisplayNameUpdate",
+            ...(await updateUser(userId, {
+              displayName: messageInfo.displayName,
+            })),
+          });
+          logs.info(
+            "Updated display name for user ID %s to %s",
+            userId,
+            messageInfo.displayName
+          );
+
+          break;
+        case "getProducers":
           if (!(await state.existsRoom(messageInfo.roomId))) {
             WebSocketActions.sendError(
               ws,
-              "getProducersUpdate",
+              "producersUpdate",
               WS_ERRORS.ROOM_NON_EXISTENT
             );
             return;
           }
 
           WebSocketActions.send(ws, {
-            type: "getProducersUpdate",
+            type: "producersUpdate",
             ...(await getProducersForPeer(userId, messageInfo.roomId)),
           });
           break;
@@ -732,7 +832,7 @@ export const app = SSLApp({
           logs.warn("exitRoom not implemented yet");
           break;
         default:
-          console.log("Unknown message type");
+          logs.warn("Unknown message type %O", messageInfo);
           break;
       }
     },
