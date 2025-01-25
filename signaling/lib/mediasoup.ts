@@ -2,8 +2,8 @@ import mediasoup from "mediasoup";
 import type { types as MediasoupTypes } from "mediasoup";
 import { WebRtcTransportCreationError, CannotConsumeError } from "./error";
 import { WebSocketActions } from "../actions/websocket";
-import { WebSocket } from "uWebSockets.js";
-import { UserData } from "../ServerTypes";
+import { type WebSocket } from "uWebSockets.js";
+import { type UserData } from "../ServerTypes";
 import autoBind from "auto-bind";
 import logs from "./logger";
 export default class Mediasoup {

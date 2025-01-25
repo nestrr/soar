@@ -1,5 +1,5 @@
-import { WebSocket } from "uWebSockets.js";
-import { ServerUpdate, UserData } from "../ServerTypes";
+import { type WebSocket } from "uWebSockets.js";
+import { type ServerUpdate, type UserData } from "../ServerTypes";
 import logs from "../lib/logger";
 export const WS_ERRORS = {
   ROOM_NON_EXISTENT: "Room does not exist",

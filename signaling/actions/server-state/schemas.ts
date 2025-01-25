@@ -1,4 +1,4 @@
-import { Entity, Schema } from "redis-om";
+import { type Entity, Schema } from "redis-om";
 interface RoomSchema extends Entity {
   routerId: string;
   sticky: boolean;

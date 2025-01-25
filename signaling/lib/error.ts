@@ -1,4 +1,4 @@
-import { SigningKey } from "jwks-rsa";
+import { type SigningKey } from "jwks-rsa";
 import type { types as MediasoupTypes } from "mediasoup";
 /**
  * Custom error for when router cannot consume data due to incompatible RTP capabilities.
