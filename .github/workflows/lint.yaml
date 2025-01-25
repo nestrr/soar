@@ -4,7 +4,7 @@ on:
     types: [opened, synchronize, reopened]
 jobs:
   lint:
-    name: Lint frontend code
+    name: Lint all code
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
