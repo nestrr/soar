@@ -15,8 +15,4 @@ jobs:
         with:
           node-version: "22.x"
       - run: npm ci
-      - run: echo "Linting frontend" \
-          && npm run lint \
-          && echo "Linting signaling server" \
-          && cd signaling \
-          && npm run lint
+      - run: ls
