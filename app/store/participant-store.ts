@@ -1,10 +1,10 @@
 import { createStore } from "zustand/vanilla";
-import { types as MediasoupClientTypes } from "mediasoup-client";
+import { type types as MediasoupClientTypes } from "mediasoup-client";
 export type Callback = (...args: unknown[]) => void;
 export type Errback = (error: Error) => void;
-import { MessageHandlers } from "@/app/spaces/components/WebSocketManager";
-import { Simplify } from "type-fest";
-import { PeerProducerInfo } from "@/app/spaces/message-types";
+import { type MessageHandlers } from "@/app/spaces/components/WebSocketManager";
+import { type Simplify } from "type-fest";
+import { type PeerProducerInfo } from "@/app/spaces/message-types";
 type PeerInfo = Simplify<
   PeerProducerInfo & {
     consumers: {

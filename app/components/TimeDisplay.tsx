@@ -29,7 +29,6 @@ export default function TimeDisplay() {
   useEffect(() => {
     // create a interval and get the id
     const myInterval = setInterval(() => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       setTime((_prevDayjs) => dayjs());
     }, 1000);
     // clear out the interval using the id when unmounting the component

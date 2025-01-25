@@ -54,8 +54,6 @@ export default function WebSocketManager({
 
   useEffect(() => {
     if (socket != null && Object.keys(handlers).length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-
       console.log("Handlers changed.", handlers);
       socket.onmessage = (e) => {
         const message: UpdateSignal = JSON.parse(e.data);

@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
   const limit = request.nextUrl.searchParams.get("limit") ?? 5;

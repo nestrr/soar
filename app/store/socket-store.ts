@@ -2,8 +2,8 @@ import { createStore } from "zustand/vanilla";
 export type Callback = (...args: unknown[]) => void;
 export type Errback = (error: Error) => void;
 import { WebSocket } from "partysocket";
-import { RequestSignalTypes } from "@/app/spaces/message-types";
-import { MessageHandlers } from "@/app/spaces/components/WebSocketManager";
+import { type RequestSignalTypes } from "@/app/spaces/message-types";
+import { type MessageHandlers } from "@/app/spaces/components/WebSocketManager";
 
 type RequestStatus = 0 | 1 | 2;
 export const REQUEST_STATUS = {

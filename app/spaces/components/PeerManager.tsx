@@ -58,6 +58,8 @@ export default function PeerManager() {
         }
       },
     }),
+    // TODO: add sendRequest?
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [session?.user, updateUserInfo]
   );
   useEffect(() => {

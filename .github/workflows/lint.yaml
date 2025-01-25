@@ -1,0 +1,23 @@
+name: Lint code
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  lint:
+    name: Lint all code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Use node.js 22.13.1
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+      - name: Lint frontend
+        run: npm ci && npm run lint
+      - name: Lint signaling server
+        run: |
+          cd signaling \
+            && npm ci \
+            && npm run lint

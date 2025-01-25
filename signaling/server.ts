@@ -1,15 +1,15 @@
 import config from "./config";
 import redis from "./lib/redis";
-import Mediasoup, { MediasoupTypes } from "./lib/mediasoup";
-import { SHARED_COMPRESSOR, SSLApp, WebSocket } from "uWebSockets.js";
+import Mediasoup, { type MediasoupTypes } from "./lib/mediasoup";
+import { SHARED_COMPRESSOR, SSLApp, type WebSocket } from "uWebSockets.js";
 import {
-  FullRoomInfo,
-  GetPeersCountUpdate,
-  PeerData,
-  ProducerInfo,
-  UserData,
-  UserIdUpdate,
-  UserInfo,
+  type FullRoomInfo,
+  type GetPeersCountUpdate,
+  type PeerData,
+  type ProducerInfo,
+  type UserData,
+  type UserIdUpdate,
+  type UserInfo,
 } from "./ServerTypes";
 import { WebSocketActions, WS_ERRORS } from "./actions/websocket";
 import { bufferToJSON, generateHash } from "./lib/util";
@@ -21,7 +21,7 @@ import {
 import { publishCheckRequest } from "./actions/server-state/cleanup/producer";
 import logs from "./lib/logger";
 
-const port = !!process.env.PORT ? parseInt(process.env.PORT) : 3001;
+const port = process.env.PORT ? parseInt(process.env.PORT) : 3001;
 const mediasoupHandler = new Mediasoup();
 const state = ServerState.getInstance();
 
@@ -392,21 +392,24 @@ async function updateUser(userId: string, userInfo: Partial<UserInfo>) {
 }
 async function getProducersForPeer(userId: string, roomId: string) {
   const peersInfo = await state.getProducingRoomPeers(roomId);
-  const producers = peersInfo.reduce((acc, peer) => {
-    const { userId: peerUserId, producerId, displayName, verified } = peer;
-    // skip current user
-    if (userId === peerUserId) return acc;
-    const { kind } = state.getProducer(producerId!);
-    return {
-      ...acc,
-      [userId]: {
-        ...acc[userId],
-        displayName,
-        verified,
-        producers: { ...acc[userId].producers, [kind]: producerId },
-      },
-    };
-  }, {} as Record<string, ProducerInfo>);
+  const producers = peersInfo.reduce(
+    (acc, peer) => {
+      const { userId: peerUserId, producerId, displayName, verified } = peer;
+      // skip current user
+      if (userId === peerUserId) return acc;
+      const { kind } = state.getProducer(producerId!);
+      return {
+        ...acc,
+        [userId]: {
+          ...acc[userId],
+          displayName,
+          verified,
+          producers: { ...acc[userId].producers, [kind]: producerId },
+        },
+      };
+    },
+    {} as Record<string, ProducerInfo>
+  );
   return {
     contents: {
       info: "Producers retrieved",
@@ -455,6 +458,9 @@ async function disconnect(userId: string) {
     console.error(e);
   }
 }
+
+// TODO: use function
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function exitRoom(userId: string, roomId: string) {
   const presenceInfo = await state.getUserPresence(userId, true, [roomId]);
 

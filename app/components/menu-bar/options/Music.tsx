@@ -3,9 +3,6 @@ import { Tooltip } from "@/app/components/ui/tooltip";
 import { auth } from "@/auth";
 import MusicLoginButton from "../MusicLoginButton";
 import SpotifyDialog from "../spotify-dialog/SpotifyDialog";
-import { IconButton } from "@chakra-ui/react";
-import { LuMusic } from "react-icons/lu";
-import Link from "next/link";
 
 export default async function Music() {
   const session = await auth();

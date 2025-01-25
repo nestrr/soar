@@ -22,7 +22,7 @@ export const createPlayerStore = (
 ) => {
   return createStore<PlayerStore>()((set) => ({
     ...initState,
-    setType: (newType: string) => set((state) => ({ type: newType })),
-    setId: (newId: string) => set((state) => ({ id: newId })),
+    setType: (newType: string) => set(() => ({ type: newType })),
+    setId: (newId: string) => set(() => ({ id: newId })),
   }));
 };

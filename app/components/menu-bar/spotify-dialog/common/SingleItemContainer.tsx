@@ -37,7 +37,7 @@ export default function SingleItemContainer({
       bg={id === currentlyPlayingId ? "accent.emphasized" : "accent.muted"}
       borderWidth={"3px"}
       borderRadius={"md"}
-      onClick={(e) => {
+      onClick={(_e) => {
         setId(id);
         setType(type);
       }}

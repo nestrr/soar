@@ -1,8 +1,7 @@
-import { commandOptions, createClient } from "redis";
+import { commandOptions } from "redis";
 import { CHECK, SWEEP } from "./constants";
 import { RoomChecker, UserChecker } from "./checker";
 import { UserSweeper, RoomSweeper } from "./sweeper";
-type Client = ReturnType<typeof createClient>;
 import redis from "../../../lib/redis";
 import logs from "../../../lib/logger";
 const CHECKERS = {
@@ -25,7 +24,7 @@ export async function getLatestStreamIds() {
   return { check: check ?? DEFAULT, sweep: sweep ?? DEFAULT };
 }
 export async function listenForSweep(latestStreamIds: LatestStreamIds) {
-  let { check, sweep } = latestStreamIds;
+  let { check } = latestStreamIds;
   while (true) {
     try {
       const response = await redis.xRead(
