@@ -2,6 +2,7 @@ import { types as MediasoupClientTypes } from "mediasoup-client";
 import type { Except } from "type-fest";
 import { ProducerEventHandlers } from "@/app/spaces/join/setup/page";
 import { TransportHandlers } from "@/app/spaces/components/TransportsManager";
+import { ConsumerEventHandlers } from "@/app/spaces/components/ConsumerManager";
 export type TransportConnectionEventHandlers = Partial<
   Record<
     MediasoupClientTypes.ConnectionState,
@@ -118,7 +119,13 @@ export function createRecvTransport(
 ) {
   const consumerTransport = device.createRecvTransport(transportOptions);
   consumerTransport.on("connect", ({ dtlsParameters }, callback, errback) => {
-    additionalHandlers.connect(consumerTransport.id, dtlsParameters);
+    try {
+      additionalHandlers.connect(consumerTransport.id, dtlsParameters);
+      callback();
+    } catch (err) {
+      console.error("Error in connect", err);
+      errback(err as unknown as Error);
+    }
   });
 
   consumerTransport.on(
@@ -202,6 +209,20 @@ export async function produce(
   } catch (e) {
     console.log("Error getting user media", e);
     return { ok: false, error: "We couldn't get your camera and mic." };
+  }
+}
+export async function consume(
+  consumerTransport: MediasoupClientTypes.Transport,
+  consumerHandlers: ConsumerEventHandlers,
+  consumerOptions: MediasoupClientTypes.ConsumerOptions
+) {
+  try {
+    const consumer = await consumerTransport.consume(consumerOptions);
+    consumerHandlers["creation"](consumer.id);
+    return { ok: true, consumer };
+  } catch (e) {
+    console.log("Error creating consumer on consumer transport", e);
+    return { ok: false, error: "We could not create a consumer." };
   }
 }
 export async function hasGrantedPermissions() {

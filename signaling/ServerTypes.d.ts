@@ -1,4 +1,5 @@
 import type { types as MediasoupTypes } from "mediasoup";
+import { MediaKind } from "mediasoup/node/lib/rtpParametersTypes";
 
 interface PeerData {
   producerTransportId: string | null;
@@ -33,6 +34,12 @@ interface UserInfo {
   userId: string;
   verified: boolean;
   displayName: string;
+}
+
+interface ProducerInfo {
+  displayName: string;
+  verified: boolean;
+  producers: Record<MediaKind, string>;
 }
 /**
  * @abstract
