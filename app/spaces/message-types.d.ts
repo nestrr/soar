@@ -1,4 +1,4 @@
-import { MediasoupTypes } from "@/signaling/lib/mediasoup";
+import { type MediasoupTypes } from "@/signaling/lib/mediasoup";
 
 interface BaseRequestSignal {
   type: string;

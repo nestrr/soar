@@ -9,8 +9,8 @@ import type {
   UpdateSignal,
 } from "@/app/spaces/message-types";
 import { useSocketStore } from "@/app/spaces/components/SocketStoreProvider";
-import { REQUEST_STATUS, SocketActions } from "@/app/store/socket-store";
-import { UserInfo } from "@/signaling/ServerTypes";
+import { REQUEST_STATUS, type SocketActions } from "@/app/store/socket-store";
+import { type UserInfo } from "@/signaling/ServerTypes";
 export type ProducerEventHandlers = Record<
   string,
   (producerId: string) => void

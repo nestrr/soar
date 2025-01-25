@@ -1,8 +1,8 @@
-import { types as MediasoupClientTypes } from "mediasoup-client";
+import { type types as MediasoupClientTypes } from "mediasoup-client";
 import type { Except } from "type-fest";
-import { ProducerEventHandlers } from "@/app/spaces/join/setup/page";
-import { TransportHandlers } from "@/app/spaces/components/TransportsManager";
-import { ConsumerEventHandlers } from "@/app/spaces/components/ConsumerManager";
+import { type TransportHandlers } from "@/app/spaces/components/TransportsManager";
+import { type ConsumerEventHandlers } from "@/app/spaces/components/ConsumerManager";
+import { type ProducerEventHandlers } from "@/app/spaces/components/ProducerManager";
 export type TransportConnectionEventHandlers = Partial<
   Record<
     MediasoupClientTypes.ConnectionState,

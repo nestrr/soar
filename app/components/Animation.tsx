@@ -1,7 +1,7 @@
-import { Container, ContainerProps } from "@chakra-ui/react/container";
+import { Container, type ContainerProps } from "@chakra-ui/react/container";
 import {
   DotLottieReact,
-  DotLottieReactProps,
+  type DotLottieReactProps,
 } from "@lottiefiles/dotlottie-react";
 export function Animation({
   source,

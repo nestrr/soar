@@ -1,5 +1,5 @@
 "use client";
-import { Heading, Input, Stack } from "@chakra-ui/react";
+import { Heading, Stack } from "@chakra-ui/react";
 import useSWR from "swr";
 import { useState } from "react";
 import PaginationButtons from "../common/PaginationButtons";

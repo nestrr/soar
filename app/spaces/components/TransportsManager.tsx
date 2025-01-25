@@ -1,14 +1,14 @@
 "use client";
 import {
   createSendTransport,
-  ConnectionEventHandlers,
+  type ConnectionEventHandlers,
   createRecvTransport,
 } from "@/app/spaces/actions/device-handlers";
 import { useParticipantStore } from "@/app/spaces/components/ParticipantStoreProvider";
 import { toaster } from "@/app/components/ui/toaster";
 import type { Callback, Errback } from "@/app/store/participant-store";
-import { types as MediasoupClientTypes } from "mediasoup-client";
-import { MediasoupTypes as MediasoupServerTypes } from "@/signaling/lib/mediasoup";
+import { type types as MediasoupClientTypes } from "mediasoup-client";
+import { type MediasoupTypes as MediasoupServerTypes } from "@/signaling/lib/mediasoup";
 import React, { useEffect, useMemo } from "react";
 import type {
   ConnectTransportUpdate,
@@ -16,7 +16,7 @@ import type {
   UpdateSignal,
   WebRtcTransportsUpdate,
 } from "@/app/spaces/message-types";
-import { Except } from "type-fest";
+import { type Except } from "type-fest";
 import { useSocketStore } from "@/app/spaces/components/SocketStoreProvider";
 import { REQUEST_STATUS } from "@/app/store/socket-store";
 export type TransportHandlers = {
@@ -190,6 +190,8 @@ export default function TransportsManager() {
         stateChangeHandlers.producerTransport[state]?.(producerTransport);
       },
     }),
+    // TODO: add user?.userId?
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       getRequest,
       sendRequest,

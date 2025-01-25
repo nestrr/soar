@@ -31,7 +31,7 @@ export default function MenuProvider({
         >
           <IconButton
             aria-label="Show menu"
-            onClick={(e) => setMenuVisible(true)}
+            onClick={(_e) => setMenuVisible(true)}
             rounded="full"
             colorPalette="accent"
             color="fg.contrast"
@@ -45,7 +45,7 @@ export default function MenuProvider({
       {menuVisible && (
         <ActionBarRoot
           open={menuVisible}
-          onOpenChange={(e) => setMenuVisible((v: boolean) => !v)}
+          onOpenChange={(_e) => setMenuVisible((v: boolean) => !v)}
           closeOnInteractOutside={false}
         >
           <ActionBarContent bg="accent.muted" p={2} rounded="full">
@@ -67,7 +67,7 @@ export default function MenuProvider({
                 color="fg.contrast"
                 variant="solid"
                 rounded="full"
-                onClick={(e) => setMenuVisible(false)}
+                onClick={(_e) => setMenuVisible(false)}
               >
                 <LuEyeOff />
               </IconButton>

@@ -1,7 +1,8 @@
 import { auth } from "@/auth";
-import { NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
 
-export async function GET(request: NextRequest) {
+// TODO: see if request arg is needed
+export async function GET(_request: NextRequest) {
   const session = await auth();
   const response = await fetch(`https://api.spotify.com/v1/me`, {
     headers: { Authorization: `Bearer ${session?.accessToken}` },

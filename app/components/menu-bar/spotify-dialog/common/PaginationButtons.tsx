@@ -18,7 +18,7 @@ export default function PaginationButtons({
         aria-label="See previous page"
         size="sm"
         rounded="full"
-        onClick={(e) => adjustOffset(-limit)}
+        onClick={(_e) => adjustOffset(-limit)}
         disabled={previous === null}
       >
         <LuChevronLeft />
@@ -28,7 +28,7 @@ export default function PaginationButtons({
         size="sm"
         rounded="full"
         disabled={next === null}
-        onClick={(e) => adjustOffset(limit)}
+        onClick={(_e) => adjustOffset(limit)}
       >
         <LuChevronRight />
       </IconButton>

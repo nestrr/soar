@@ -1,9 +1,7 @@
 "use client";
-import { consume, produce } from "@/app/spaces/actions/device-handlers";
+import { produce } from "@/app/spaces/actions/device-handlers";
 import { useParticipantStore } from "@/app/spaces/components/ParticipantStoreProvider";
-import UserStream from "@/app/spaces/room/[roomId]/components/UserStream";
 import PermissionsPrompt from "@/app/spaces/room/[roomId]/components/PermissionsPrompt";
-import { Grid, VStack } from "@chakra-ui/react";
 import { useEffect, useMemo, useRef } from "react";
 import { createEventHandlers as createProducerEventHandlers } from "@/app/spaces/components/ProducerManager";
 import { useSocketStore } from "@/app/spaces/components/SocketStoreProvider";
@@ -55,7 +53,6 @@ export default function RoomPage() {
     <div>
       <PermissionsPrompt />
       In construction
-      <Me />
     </div>
   );
 }

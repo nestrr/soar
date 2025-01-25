@@ -8,8 +8,8 @@ import type {
   ConsumeUpdate,
 } from "@/app/spaces/message-types";
 import { useSocketStore } from "@/app/spaces/components/SocketStoreProvider";
-import { REQUEST_STATUS, SocketActions } from "@/app/store/socket-store";
-import { UserInfo } from "@/signaling/ServerTypes";
+import { REQUEST_STATUS, type SocketActions } from "@/app/store/socket-store";
+import { type UserInfo } from "@/signaling/ServerTypes";
 import { consume } from "@/app/spaces/actions/device-handlers";
 
 export type ConsumerMessageHandlers = Partial<
@@ -71,13 +71,8 @@ export default function ConsumerManager() {
   const { device, user, activeRoom, addPeerConsumer } = useParticipantStore(
     (state) => state
   );
-  const {
-    updateRequestState,
-    updateHandlers,
-    sendRequest,
-    getRequest,
-    socket,
-  } = useSocketStore((state) => state);
+  const { updateRequestState, updateHandlers, sendRequest, getRequest } =
+    useSocketStore((state) => state);
 
   const consumerEventHandlers = useMemo(
     () => createEventHandlers(sendRequest, getRequest, user),
